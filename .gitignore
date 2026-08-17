@@ -40,6 +40,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# internal planning notes — kept locally, deliberately not part of the
+# submitted repository.
+ringfence-build-spec.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
