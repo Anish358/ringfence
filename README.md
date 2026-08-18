@@ -151,74 +151,6 @@ SQL at all.
 confirmed fraud*. That chain **is** the evidence that goes in the case file. SQL returns rows;
 the analyst needs a route.
 
-### Side by side
-
-The easy part is easy in both. Accounts sharing a device directly:
-
-```sql
-SELECT device_id, COUNT(*) FROM account_devices
-GROUP BY device_id HAVING COUNT(*) > 3;
-```
-
-Now the actual question — *find any account reachable from this one through up to three shared
-identifiers of any kind, and give me the route*:
-
-```sql
--- PostgreSQL. Loop prevention, depth tracking and route accumulation are all manual.
-WITH RECURSIVE reach(from_id, to_id, depth, route) AS (
-  SELECT a.account_id, b.account_id, 1,
-         ARRAY[a.account_id, b.account_id]
-    FROM account_devices a JOIN account_devices b USING (device_id)
-   WHERE a.account_id = $1 AND b.account_id <> a.account_id
-  UNION ALL
-  SELECT a.account_id, b.account_id, 1, ARRAY[a.account_id, b.account_id]
-    FROM account_addresses a JOIN account_addresses b USING (address_id)
-   WHERE a.account_id = $1 AND b.account_id <> a.account_id
-  UNION ALL   -- ...and again for bank accounts, and again for IPs
-  SELECT r.from_id, nxt.account_id, r.depth + 1, r.route || nxt.account_id
-    FROM reach r
-    JOIN ( SELECT a.account_id AS src, b.account_id FROM account_devices a
-             JOIN account_devices b USING (device_id) WHERE a.account_id <> b.account_id
-           UNION ALL
-           SELECT a.account_id, b.account_id FROM account_addresses a
-             JOIN account_addresses b USING (address_id) WHERE a.account_id <> b.account_id
-           UNION ALL  -- ...and again, and again
-         ) nxt ON nxt.src = r.to_id
-   WHERE r.depth < 3
-     AND NOT nxt.account_id = ANY(r.route)          -- hand-written cycle prevention
-)
-SELECT DISTINCT to_id, MIN(depth), route FROM reach GROUP BY to_id, route;
-```
-
-```cypher
-// Cypher. The depth is a number, the identifier kinds are a parameter,
-// and the route comes back as part of the answer.
-MATCH (a:Account {id: $accountId})
-MATCH p = shortestPath((a)-[:$linkTypes*..6]-(b:Account))
-RETURN [n IN nodes(p) | coalesce(n.id, n.value)] AS route, length(p) / 2 AS hops
-```
-
-And the one with **no clean SQL equivalent at all** — money that leaves an account and comes
-back:
-
-```cypher
-MATCH (a:Account) WHERE a.id IN $accountIds
-MATCH p = (a)-[:TRANSFERRED*2..3]->(b:Account)
-MATCH (b)-[closing:TRANSFERRED]->(a)
-WITH p, closing, relationships(p) AS legs
-WHERE all(r IN legs WHERE r.amount <= $maxLegAmount) AND closing.amount <= $maxLegAmount
-RETURN [n IN nodes(p) | n.id] AS accounts, size(legs) + 1 AS legs,
-       reduce(s = 0.0, r IN legs | s + r.amount) + closing.amount AS totalMoved
-```
-
-**One honest caveat, because overstating this is the fastest way to lose an argument:** a
-recursive CTE genuinely *can* walk a variable-depth chain. What is true is that you hand-write
-the cycle prevention, hand-track the depth, repeat the whole `UNION ALL` block once per
-identifier type, and the engine re-searches an index at every level. Depth-bounded search in SQL
-is *painful*; **cycle detection is the case with no clean expression.** Lead with the second.
-
----
-
 ## Data model
 
 ```mermaid
@@ -259,7 +191,7 @@ pattern can mix all four identifier kinds to any depth.
 | `:Loan` | `id`, `amount`, `appliedAt`, `state` | Has its own lifecycle, so a node not a property |
 | `:FraudCase` | `id`, `openedAt`, `openedBy`, `note` | Ground truth; the seed points risk is measured from |
 
-### The five decisions worth defending
+### Decisions
 
 **1 · Shared identifiers are nodes, not columns.** If `device_fingerprint` is a column on the
 accounts table, the only operation available is `GROUP BY`. Making `Device` a node turns it into
