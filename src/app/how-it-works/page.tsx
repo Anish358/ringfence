@@ -198,7 +198,7 @@ RETURN path`}
       </Section>
 
       <div className="mt-7 flex flex-wrap gap-2.5 border-t border-line pt-5">
-        <Link href="/" className="rounded-md bg-accent px-3.5 py-2 text-[13px] font-semibold text-accent-text hover:bg-accent-hover">
+        <Link href="/rings" className="rounded-md bg-accent px-3.5 py-2 text-[13px] font-semibold text-accent-text hover:bg-accent-hover">
           Start with the worst cluster
         </Link>
         <Link href="/check" className="rounded-md border border-line bg-surface px-3.5 py-2 text-[13px] font-medium text-ink hover:bg-surface-2">

@@ -48,7 +48,7 @@ export default async function RingPage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
-      <Link href="/" className="mb-4 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-accent hover:underline">
+      <Link href="/rings" className="mb-4 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-accent hover:underline">
         <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true">
           <path d="M11 7H3M6.5 3.5 3 7l3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

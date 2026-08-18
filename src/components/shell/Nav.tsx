@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { NavLink } from './NavLink'
 
+// How it works comes first deliberately: a reviewer arriving cold needs the
+// orientation before the data, and the nav order is the only cue for that.
 const LINKS = [
-  { href: '/', label: 'Ring Radar', hint: 'Detected clusters' },
   { href: '/how-it-works', label: 'How it works', hint: 'Why this needs a graph database' },
+  { href: '/rings', label: 'Ring Radar', hint: 'Detected clusters' },
   { href: '/check', label: 'Applicant Check', hint: 'Before disbursement' },
   { href: '/paths', label: 'Path Finder', hint: 'Connection between two accounts' },
 ]
@@ -21,7 +23,6 @@ export function Nav() {
             <path d="M11 4 L4 16 M11 4 L18 16 M4 16 L18 16" stroke="var(--border-strong)" strokeWidth="1.3" fill="none" />
           </svg>
           <span className="text-[15px] font-semibold tracking-tight">Ringfence</span>
-          <span className="hidden text-[11px] text-ink-3 sm:inline">fraud ring detection</span>
         </Link>
 
         <nav className="-mb-px flex gap-1 overflow-x-auto sm:ml-auto" aria-label="Main">

@@ -19,10 +19,17 @@ confirm them, and checks new applicants against the whole graph before money mov
 
 ## Start here
 
-The app is built for a fraud analyst, but a reviewer is not one — so it opens with a
-**four-step guided tour** whose targets are computed from the live data, and a
-[**How it works**](https://ringfence-kappa.vercel.app/how-it-works) page that makes the whole
-argument in sixty seconds with no graph-database background assumed.
+The app is built for a fraud analyst, but a reviewer is not one — so three things exist purely
+for the reader arriving cold:
+
+- **The landing page** ([`/`](https://ringfence-kappa.vercel.app/)) states the problem in one
+  screen and then *proves the system works*: the six planted rings are read from the generator's
+  ground-truth file and matched against live detection output on every request. It is a
+  verification run, not a claim. One click into the console.
+- **[How it works](https://ringfence-kappa.vercel.app/how-it-works)** makes the whole
+  "why a graph database" argument in sixty seconds, assuming no background.
+- **A four-step guided tour** on Ring Radar, with targets computed from live data so it stays
+  correct if the dataset is regenerated.
 
 Three minutes, in this order:
 
@@ -37,7 +44,11 @@ Three minutes, in this order:
    connected.
 
 Every ring page also carries a **"What to notice here"** panel naming, in plain language, the
-most interesting computed fact about that specific ring.
+most interesting computed fact about that specific ring — so nobody has to already know what is
+clever about the graph in front of them.
+
+Routes: `/` landing · `/how-it-works` · `/rings` Ring Radar · `/rings/[id]` Investigation Canvas ·
+`/check` Applicant Check · `/paths` Path Finder
 
 ## The problem
 

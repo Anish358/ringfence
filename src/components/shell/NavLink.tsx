@@ -10,7 +10,8 @@ import { usePathname } from 'next/navigation'
  */
 export function NavLink({ href, label, hint }: { href: string; label: string; hint: string }) {
   const pathname = usePathname()
-  const active = href === '/' ? pathname === '/' || pathname.startsWith('/rings') : pathname.startsWith(href)
+  // /rings owns its detail pages, so the tab stays lit while investigating one.
+  const active = href === '/rings' ? pathname.startsWith('/rings') : pathname === href
 
   return (
     <Link

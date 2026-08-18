@@ -18,7 +18,7 @@ export default function NotFound() {
         </>
       }
       action={
-        <Link href="/" className="rounded-md bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-text hover:bg-accent-hover">
+        <Link href="/rings" className="rounded-md bg-accent px-3.5 py-2 text-[13px] font-medium text-accent-text hover:bg-accent-hover">
           Back to Ring Radar
         </Link>
       }

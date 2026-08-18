@@ -1,36 +1,27 @@
-/**
- * Shown automatically while the Ring Radar Server Component awaits its queries.
- * Detection takes a few seconds against a free-tier instance, so this is not
- * decoration -- it is the difference between a considered wait and a page that
- * looks broken.
- *
- * The skeleton mirrors the real card layout rather than showing a spinner, so
- * the content does not jump when it arrives.
- */
+import { SkeletonLine } from '@/components/states'
 
-import { RingCardSkeleton, SkeletonLine } from '@/components/states'
-
+/** Landing-page skeleton. It queries live figures, so it does await something. */
 export default function Loading() {
   return (
-    <>
-      <div className="mb-6 max-w-[68ch] space-y-2.5">
-        <SkeletonLine w="180px" h={20} />
-        <SkeletonLine w="100%" />
-        <SkeletonLine w="72%" />
+    <div className="mx-auto max-w-[1080px]">
+      <div className="space-y-4 pt-6 pb-9 sm:pt-12 sm:pb-14">
+        <SkeletonLine w="220px" h={10} />
+        <SkeletonLine w="min(90%, 620px)" h={42} />
+        <SkeletonLine w="min(80%, 540px)" h={40} />
+        <div className="flex gap-2.5 pt-3">
+          <div className="skeleton h-10 w-40 rounded-md" />
+          <div className="skeleton h-10 w-44 rounded-md" />
+        </div>
       </div>
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 border-y border-line py-4 sm:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-lg border border-line bg-surface px-4 py-3">
-            <SkeletonLine w="60%" h={9} />
-            <div className="mt-2"><SkeletonLine w="45%" h={19} /></div>
-            <div className="mt-2"><SkeletonLine w="70%" h={9} /></div>
+          <div key={i} className="space-y-2">
+            <SkeletonLine w="60%" h={22} />
+            <SkeletonLine w="85%" h={10} />
           </div>
         ))}
       </div>
-      <div className="mb-2.5"><SkeletonLine w="110px" h={9} /></div>
-      <div className="flex flex-col gap-2.5">
-        {Array.from({ length: 5 }).map((_, i) => <RingCardSkeleton key={i} />)}
-      </div>
-    </>
+      <div className="py-9"><div className="skeleton h-[220px] rounded-lg" /></div>
+    </div>
   )
 }

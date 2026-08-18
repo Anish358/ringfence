@@ -25,11 +25,9 @@ export default async function CheckPage() {
     <>
       <div className="mb-6 max-w-[70ch]">
         <h1 className="text-[22px] font-semibold tracking-tight">Applicant Check</h1>
-        <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">
-          Run a new application against the graph before money moves. The applicant has no
-          account yet, so their raw identifiers are resolved against nodes that already
-          exist — then traversed to see how close they sit to accounts already confirmed as
-          fraud.
+        <p className="mt-1 text-[13px] text-ink-2">
+          Screen an application against the graph before money moves. Two examples are
+          pre-filled — no data entry needed.
         </p>
       </div>
       <ApplicantForm examples={examples} />

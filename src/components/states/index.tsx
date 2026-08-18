@@ -92,7 +92,7 @@ export function NoDataState() {
         </>
       }
       action={
-        <Link href="/" className="text-[13px] font-medium text-accent hover:underline">
+        <Link href="/rings" className="text-[13px] font-medium text-accent hover:underline">
           Reload
         </Link>
       }

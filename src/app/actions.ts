@@ -40,7 +40,7 @@ export async function confirmFraudAction(accountId: string, note: string): Promi
     // "expire it now and do not hold a stale copy". revalidatePath is belt and
     // braces for the route caches that render from it.
     revalidateTag(RINGS_TAG, 'max')
-    revalidatePath('/')
+    revalidatePath('/rings')
     return { ok: true, accountId: row.accountId, status: row.status }
   } catch (e) {
     return { ok: false, message: toAppError(e).message }
@@ -52,7 +52,7 @@ export async function clearAccountAction(accountId: string): Promise<ActionResul
     const row = await clearAccount({ accountId, analyst: ANALYST })
     if (!row) return { ok: false, message: `Account ${accountId} no longer exists.` }
     revalidateTag(RINGS_TAG, 'max')
-    revalidatePath('/')
+    revalidatePath('/rings')
     return { ok: true, accountId: row.accountId, status: row.status }
   } catch (e) {
     return { ok: false, message: toAppError(e).message }

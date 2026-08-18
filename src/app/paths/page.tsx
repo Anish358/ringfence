@@ -28,11 +28,9 @@ export default async function PathsPage() {
     <>
       <div className="mb-6 max-w-[70ch]">
         <h1 className="text-[22px] font-semibold tracking-tight">Path Finder</h1>
-        <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">
-          Two accounts, and the shortest chain of shared devices, addresses, bank accounts or
-          IP addresses that links them. Each hop passes through one shared identifier, so a
-          three-hop answer means three pieces of infrastructure in common along the way — and
-          possibly nothing at all in common between the two ends.
+        <p className="mt-1 text-[13px] text-ink-2">
+          The shortest chain of shared infrastructure between any two accounts — even when the
+          two ends share nothing with each other.
         </p>
       </div>
       <PathFinder examplePair={examplePair} />
