@@ -19,6 +19,9 @@ export async function confirmFraud(args: {
   analyst: string
   note: string
 }): Promise<DecisionResult | null> {
+  // Interpolated into a STRING, not into Cypher. It travels to the database as
+  // $caseId below, so this is not a concatenated query -- worth the comment
+  // because a reviewer grepping for `${` in this folder will land here.
   const caseId = `FC-MANUAL-${args.accountId}`
   const now = new Date().toISOString()
 

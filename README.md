@@ -10,7 +10,7 @@ confirm them, and checks new applicants against the whole graph before money mov
 | | |
 |---|---|
 | **Live demo** | **https://ringfence-kappa.vercel.app** |
-| **Screen recording** | _<add recording URL>_ |
+| **Screen recording** | [Watch](https://github.com/user-attachments/assets/0cf57799-1dc5-49e3-b853-6655ec80e9e2) — 1 min 24 s, silent screen capture |
 | **Database** | CognoDB free `c0` — openCypher over Bolt 5, via the official `neo4j-driver` |
 | **Stack** | Next.js 16 (App Router, RSC), TypeScript strict, Tailwind v4, `react-force-graph-2d` |
 | **Dataset** | 15,512 nodes · 25,516 relationships · 6 planted rings · 30 ground-truth fraud labels |
@@ -447,12 +447,17 @@ the result rather than asserting it:
 | Relationship type as `$param` | **Supported**, including in variable-length patterns and as a *list* | Read queries pass `$linkTypes` — **no interpolation at all** |
 | Relationship type in `MERGE` | Accepted but **ignored when matching** — returns a relationship of a *different type* | Loader uses a literal from `LINK_TYPES`, an `as const` array |
 | Node label as `$param` | Rejected | Loader runs one pass per kind, label from `IDENTIFIER_KINDS` |
-| Variable-length depth as `$param` | Rejected — syntax error | Frozen map of pre-built query strings, keyed by a Zod enum |
+| Variable-length depth as `$param` | Rejected — syntax error | Two mechanisms, both provably closed: Q2 selects from a **frozen map** of pre-built query strings keyed by a Zod enum; Q3 interpolates a **clamped integer** (`min(max(n,1),5) * 2`), which can only ever be an even number from 2 to 12 |
 
 So the interpolated values are: relationship types and labels **in the loader only**, from
-hard-coded `as const` arrays; and path depths, selected from a frozen map after Zod validation.
-No caller-supplied string can reach a query. Every *value* — account ids, identifier values,
-thresholds, limits — travels as `$params`.
+hard-coded `as const` arrays; and path depths, which are either selected from a frozen map after
+Zod validation or clamped to a small integer range before use. No caller-supplied *string* ever
+reaches a query. Every *value* — account ids, identifier values, thresholds, limits — travels as
+`$params`.
+
+Grep `src/queries/` for `${` and you get eight hits. Three are the path depths above. The other
+five build a case id and the namespaced identifier values — and those are **not query text**: they
+are passed in as `$caseId` and `$values`. Worth knowing before the question is asked.
 
 The `MERGE` finding is worth flagging to the CognoDB team: passing `$relType` to `MERGE` matched
 an existing relationship of an unrelated type instead of creating the requested one. In a loader
@@ -652,20 +657,69 @@ reports `WRONG` rather than `PASS`. That is how the node-uniqueness difference i
 
 ---
 
+## Screen recording
+
+A 1 minute 24 second screen capture, no audio. It walks the same path the app's own guided tour
+does: the landing page with the six planted rings recovered live, Ring Radar, a ring on the
+Investigation Canvas, an applicant scored and rejected before payout, and the shortest-path chain
+between two accounts that share nothing directly.
+
+https://github.com/user-attachments/assets/0cf57799-1dc5-49e3-b853-6655ec80e9e2
+
+The screens carry their own explanation — every ring page has a plain-language **"What to notice
+here"** panel, and [`/how-it-works`](https://ringfence-kappa.vercel.app/how-it-works) makes the
+full argument in text — so the capture reads without commentary.
+
+<sub>Also committed at [`docs/ringfence-demo.mp4`](docs/ringfence-demo.mp4) (2.6 MB), so the
+recording survives independently of any hosted link.</sub>
+
 ## Screenshots
 
-_Add before submitting — Ring Radar, Investigation Canvas, Applicant Check (risky **and**
-innocent), and the database-unreachable state._
+### The landing page
 
-| | |
-|---|---|
-| Ring Radar | `docs/screenshots/ring-radar.png` |
-| Investigation Canvas | `docs/screenshots/canvas.png` |
-| Applicant Check — high risk | `docs/screenshots/check-risky.png` |
-| Applicant Check — innocent | `docs/screenshots/check-benign.png` |
-| Database unreachable | `docs/screenshots/db-down.png` |
+States the problem, then proves the system works: the six planted rings are read from the
+generator's ground-truth file and matched against live detection output on every request.
 
----
+![Landing page](docs/screenshots/home.png)
+
+### Ring Radar — the triage queue
+
+Clusters ranked by how organised the pattern looks. Each card leads with the fact a rules engine
+could never produce: how many member pairs share **nothing** with each other.
+
+![Ring Radar](docs/screenshots/ring-radar.png)
+
+### Investigation Canvas — the ring, drawn
+
+Circles are accounts, diamonds are shared identifiers, arrows are money. Accounts that share
+infrastructure pull together under the force simulation, so a ring reads as a knot and the
+identifier bridging two knots sits visibly between them. The red triangle here is a closed
+transfer loop — money leaving an account and returning to it.
+
+![Investigation Canvas](docs/screenshots/ring-radar-ring.png)
+
+### Applicant Check — before disbursement
+
+`REJECT 90`, with the score itemised and the evidence chain drawn out: the applicant's device is
+already on `ACC-02001`, which shares a device with `ACC-02002`, confirmed fraud. Two hops. The
+chain is the answer, not the score — a relational query can tell you the accounts are related; it
+cannot hand back the route.
+
+![Applicant Check](docs/screenshots/applicant-check.png)
+
+### Path Finder — the shortest chain between any two accounts
+
+![Path Finder](docs/screenshots/path-finder.png)
+
+### Database unreachable — the graded failure path
+
+Captured from a production build running against the live instance with a deliberately wrong
+password. A persistent banner on every page, a message that names the actual cause *and* the fix,
+and no stack trace anywhere. "Instance is down" and "credentials rejected" produce different copy,
+because the remedies are different — and the page still returns 200 and renders rather than
+white-screening.
+
+![Database unreachable](docs/screenshots/database_unreachable.png)
 
 ## Deliberately not included
 

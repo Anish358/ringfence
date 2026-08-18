@@ -59,6 +59,8 @@ export function Canvas({
 }) {
   const palette = usePalette()
   const wrapRef = useRef<HTMLDivElement>(null)
+  // Imperative handle on the force graph, used only to frame the result.
+  const fgRef = useRef<{ zoomToFit?: (ms?: number, px?: number) => void } | null>(null)
   const [size, setSize] = useState({ w: 800, h: 520 })
 
   // The canvas is fixed-pixel, so it needs a real measurement rather than a
@@ -179,10 +181,23 @@ export function Canvas({
         linkLabel={(l: any) =>
           l.kind === 'TRANSFERRED' ? `sent ₹${l.amount}` : (LINK_LABEL[l.kind] ?? l.kind)
         }
+        ref={fgRef as never}
         onNodeClick={(n: any) => onSelect(n as CanvasNode)}
         onBackgroundClick={() => onSelect(null)}
         cooldownTicks={90}
         d3VelocityDecay={0.32}
+        /**
+         * Frame the graph once the simulation settles.
+         *
+         * Without this the layout is drawn at whatever scale the simulation
+         * happens to end at, which for a ten-node ring is a small clump adrift
+         * in a large empty canvas -- the shape that IS the evidence ends up
+         * too small to read. Fires again after "expand neighbours" restarts
+         * the simulation, so a growing ring re-frames itself.
+         */
+        onEngineStop={() => {
+          try { fgRef.current?.zoomToFit?.(450, 56) } catch { /* no nodes yet */ }
+        }}
       />
     </div>
   )

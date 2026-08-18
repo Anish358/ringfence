@@ -34,7 +34,13 @@ export type DirectMatch = {
   sharedVia: Array<{ kind: string; value: string; degree: number }>
 }
 
-/** Turn a form submission into the namespaced identifier values to look up. */
+/**
+ * Turn a form submission into the namespaced identifier values to look up.
+ *
+ * These template literals build DATA, not query text. The result is handed to
+ * Cypher as the $values parameter, so user input never reaches the statement --
+ * noted because grepping this folder for `${` finds these lines.
+ */
 export function toIdentifierValues(input: ApplicantInput): string[] {
   const values: string[] = []
   if (input.deviceFingerprint?.trim()) {
