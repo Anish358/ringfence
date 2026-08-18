@@ -368,6 +368,13 @@ function fillRemaining(a: AccountRow, skip: LinkType[]) {
   const farmDevices = [newDevice(), newDevice()]
   members.forEach((a, i) => {
     link(a.id, farmDevices[i % 2], 'USED_DEVICE', { firstSeen: a.openedAt, lastSeen: iso(REF_NOW - DAY), loginCount: 200 })
+    // Every third account also appears on the OTHER handset. Without this the
+    // ring is two disjoint components -- an operator running twelve accounts
+    // off two phones inevitably uses both, and the overlap is what makes the
+    // farm one ring rather than two unrelated clusters.
+    if (i % 3 === 0) {
+      link(a.id, farmDevices[(i + 1) % 2], 'USED_DEVICE', { firstSeen: a.openedAt, lastSeen: iso(REF_NOW - 2 * DAY), loginCount: 45 })
+    }
     fillRemaining(a, ['USED_DEVICE'])
   })
   rings.push({
@@ -385,6 +392,11 @@ function fillRemaining(a: AccountRow, skip: LinkType[]) {
   const mules = [newBankAccount(), newBankAccount(), newBankAccount()]
   members.forEach((a, i) => {
     link(a.id, mules[i % 3], 'PAYS_OUT_TO', { addedAt: a.openedAt })
+    // Same reasoning: mules rotate payout destinations, and the overlap is
+    // what joins the three payout groups into one ring.
+    if (i % 4 === 0) {
+      link(a.id, mules[(i + 1) % 3], 'PAYS_OUT_TO', { addedAt: iso(a.openedAtMs + 9 * DAY) })
+    }
     fillRemaining(a, ['PAYS_OUT_TO'])
   })
   rings.push({

@@ -1,26 +1,129 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ---------------------------------------------------------------------------
+   Ringfence — design tokens
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+   The subject is a fraud-analyst console, used all day by someone triaging a
+   queue. That points away from a marketing palette and toward an instrument
+   panel: cool slate neutrals so the risk colours are the only saturated thing
+   on screen, one ink-blue accent for structure, and a three-step semantic
+   scale (critical / elevated / low) that is separate from the accent.
+
+   Identifiers are set in mono throughout. A device fingerprint, an account
+   number and a bank account are data to be compared character by character,
+   not prose, and the tabular figures make columns line up.
+   ------------------------------------------------------------------------ */
+
+:root {
+  --bg:            #f1f3f7;
+  --surface:       #ffffff;
+  --surface-2:     #f7f8fb;
+  --surface-3:     #eaeef4;
+  --border:        #d6dce6;
+  --border-strong: #b8c2d1;
+
+  --text:          #111827;
+  --text-2:        #4b5768;
+  --text-3:        #737f92;
+
+  --accent:        #1f4796;
+  --accent-hover:  #17376f;
+  --accent-soft:   #e5ebf8;
+  --accent-text:   #ffffff;
+
+  --critical:      #a32116;
+  --critical-soft: #fbe6e3;
+  --elevated:      #92510a;
+  --elevated-soft: #fbf0dd;
+  --low:           #1b6349;
+  --low-soft:      #e2f1ea;
+
+  --ring-focus:    #4f7fd4;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg:            #0b0f16;
+    --surface:       #121824;
+    --surface-2:     #171f2d;
+    --surface-3:     #1e2836;
+    --border:        #26313f;
+    --border-strong: #38455a;
+
+    --text:          #e6eaf2;
+    --text-2:        #9aa7bb;
+    --text-3:        #78849a;
+
+    --accent:        #7fa2ea;
+    --accent-hover:  #9db9f2;
+    --accent-soft:   #18233c;
+    --accent-text:   #0b0f16;
+
+    --critical:      #f08a7a;
+    --critical-soft: #2e1714;
+    --elevated:      #e0ab5f;
+    --elevated-soft: #2a2011;
+    --low:           #5fbe95;
+    --low-soft:      #10251d;
+
+    --ring-focus:    #7fa2ea;
   }
 }
 
+@theme inline {
+  --color-bg:            var(--bg);
+  --color-surface:       var(--surface);
+  --color-surface-2:     var(--surface-2);
+  --color-surface-3:     var(--surface-3);
+  --color-line:          var(--border);
+  --color-line-strong:   var(--border-strong);
+  --color-ink:           var(--text);
+  --color-ink-2:         var(--text-2);
+  --color-ink-3:         var(--text-3);
+  --color-accent:        var(--accent);
+  --color-accent-hover:  var(--accent-hover);
+  --color-accent-soft:   var(--accent-soft);
+  --color-accent-text:   var(--accent-text);
+  --color-critical:      var(--critical);
+  --color-critical-soft: var(--critical-soft);
+  --color-elevated:      var(--elevated);
+  --color-elevated-soft: var(--elevated-soft);
+  --color-low:           var(--low);
+  --color-low-soft:      var(--low-soft);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Identifiers are data. Tabular figures keep them aligned in columns. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* A single visible focus treatment, applied globally rather than per control. */
+:focus-visible {
+  outline: 2px solid var(--ring-focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Section eyebrow: small, spaced, uppercase. Used for column and card labels. */
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+@keyframes pulse-soft { 0%, 100% { opacity: 1 } 50% { opacity: 0.45 } }
+.skeleton { animation: pulse-soft 1.6s ease-in-out infinite; background: var(--surface-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  * { transition-duration: 0.01ms !important; }
 }
