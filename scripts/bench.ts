@@ -2,7 +2,7 @@
  * scripts/bench.ts — time every query against the live instance, and check
  * that detection recovers the six planted rings.
  *
- *   npx tsx --env-file-if-exists=.env.local scripts/bench.ts
+ * npx tsx --env-file-if-exists=.env.local scripts/bench.ts
  */
 import { readFileSync } from 'node:fs'
 import { closeDriver } from '@/lib/db'
