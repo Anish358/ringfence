@@ -193,11 +193,29 @@ const GROUPS: Group[] = [
         check: expectScalar('labelCount', 2),
       },
       {
-        name: 'relationship type as $param',
+        // CognoDB accepts a parameterised relationship type where Neo4j 5 does
+        // not, and CREATE honours it correctly.
+        name: 'CREATE with $relType',
+        cypher: 'MATCH (a:ProbeTmp {v:"u1"}), (b:ProbeTmp {v:"u2"}) CREATE (a)-[r:$relType]->(b) RETURN type(r) AS t',
+        params: { relType: 'PROBE_DYNAMIC' },
+        why: 'If honoured, reads need no interpolated relationship types at all.',
+        check: expectScalar('t', 'PROBE_DYNAMIC'),
+      },
+      {
+        // ...but MERGE does NOT. It ignores the parameterised type when
+        // deciding whether a relationship already exists, so it will happily
+        // return a relationship of a COMPLETELY DIFFERENT type instead of
+        // creating the one you asked for. Silent data corruption in a loader.
+        //
+        // Hence: the seed script MERGEs with a literal type interpolated from
+        // LINK_TYPES (a compile-time `as const`), and only reads parameterise.
+        name: 'MERGE with $relType (hazard)',
         cypher: 'MATCH (a:ProbeTmp {v:"u1"}), (b:ProbeTmp {v:"u2"}) MERGE (a)-[r:$relType]->(b) RETURN type(r) AS t',
-        params: { relType: 'PROBE_REL' },
-        why: 'Expected to FAIL. Confirms why LINK_TYPES is interpolated from a compile-time constant.',
-        expectFailure: true,
+        params: { relType: 'PROBE_MERGED' },
+        // Not flagged critical: the design already accounts for it. A WRONG
+        // here is the finding, not an outstanding problem.
+        why: 'Expect WRONG. MERGE matches an existing relationship of another type instead of creating this one. The seed script therefore uses literal types.',
+        check: expectScalar('t', 'PROBE_MERGED'),
       },
     ],
   },
@@ -211,7 +229,9 @@ const GROUPS: Group[] = [
           'MATCH p = (a:ProbeX {v:"probe-a"})-[:PROBE_REL*1..3]->(b:ProbeX) RETURN count(p) AS paths',
         why: 'The multi-hop requirement in the brief. Everything on the Investigation Canvas needs it.',
         critical: true,
-        check: expectAtLeast('paths', 3),
+        // Two, not three: a->b and a->b->c. The third route a->b->c->a is
+        // rejected because it revisits a -- see the simple-path probe below.
+        check: expectScalar('paths', 2),
       },
       {
         name: 'var-length, multi-type',
@@ -244,12 +264,43 @@ const GROUPS: Group[] = [
         why: 'Nice-to-have for Path Finder when several equally short routes exist.',
       },
       {
-        name: 'cycle pattern (a)-[*3..3]->(a)',
+        // THE most consequential finding of this probe.
+        //
+        // Neo4j applies RELATIONSHIP uniqueness to variable-length patterns: a
+        // path may revisit a node, it just may not reuse an edge. CognoDB
+        // applies NODE uniqueness -- a matched path may never revisit a node.
+        //
+        // A closed walk (a)-[*3]->(a) requires arriving back at `a`, which IS a
+        // revisited node. So it can never match here. Not a bug, a semantic
+        // difference, and asserting 0 documents it rather than hiding it.
+        name: 'closed walk (expect 0)',
+        cypher: 'MATCH c = (a:ProbeX)-[:PROBE_REL*3..3]->(a) RETURN count(c) AS cycles',
+        why: 'Confirms simple-path semantics. Q4 cannot use this form and uses the decomposed one below.',
+        check: expectScalar('cycles', 0),
+      },
+      {
+        // The workaround, and the shape Q4 actually ships.
+        //
+        // Split the cycle in two. The variable-length segment a -> ... -> b is
+        // acyclic, so it satisfies node uniqueness; the closing edge b -> a is
+        // matched as a SEPARATE pattern, where the rule does not apply. The two
+        // together describe exactly the cycle we wanted.
+        name: 'cycle, decomposed',
         cypher:
-          'MATCH c = (a:ProbeX)-[:PROBE_REL*3..3]->(a) RETURN count(c) AS cycles',
-        why: 'Q4, circular money movement. The claim "impossible in SQL" rests entirely on this.',
+          'MATCH p = (a:ProbeX)-[:PROBE_REL*2..4]->(b:ProbeX) MATCH (b)-[closing:PROBE_REL]->(a) RETURN count(*) AS cycles',
+        why: 'Q4, circular money movement. The "no clean SQL equivalent" claim rests on this.',
         critical: true,
         check: expectAtLeast('cycles', 1),
+      },
+      {
+        // The one that removes interpolation from every read query: a LIST of
+        // relationship types, passed as a parameter, filtering correctly.
+        name: 'type disjunction as $param',
+        cypher: 'MATCH p = (a:ProbeX)-[:$types*1..2]->(b) RETURN count(p) AS paths',
+        params: { types: ['PROBE_REL', 'OTHER_REL'] },
+        why: 'Lets LINK_TYPES travel as $linkTypes instead of being interpolated into read queries.',
+        critical: true,
+        check: expectAtLeast('paths', 7),
       },
       {
         name: 'depth as $param (expect fail)',
@@ -279,20 +330,23 @@ const GROUPS: Group[] = [
         critical: true,
       },
       {
-        name: 'reduce()',
+        name: 'reduce() over a path',
+        // Note relationships(p), NOT the `t` in -[t:REL*2..2]->. On CognoDB
+        // that variable binds to a Path, not a list of relationships, so
+        // passing it to all()/reduce() raises "requires list, got Path".
         cypher:
-          'MATCH c = (a:ProbeX)-[t:PROBE_REL*3..3]->(a) RETURN reduce(s = 0.0, r IN t | s + r.amount) AS total LIMIT 1',
+          'MATCH p = (a:ProbeX {v:"probe-a"})-[:PROBE_REL*2..2]->(b) RETURN reduce(s = 0.0, r IN relationships(p) | s + r.amount) AS total',
         why: 'Sums the money moved around a transfer cycle.',
         critical: true,
-        check: expectScalar('total', 60),
+        check: expectScalar('total', 30),
       },
       {
         name: 'all() predicate over rels',
         cypher:
-          'MATCH c = (a:ProbeX)-[t:PROBE_REL*3..3]->(a) WHERE all(r IN t WHERE r.amount <= 100) RETURN count(c) AS cycles',
+          'MATCH p = (a:ProbeX)-[:PROBE_REL*2..2]->(b) WHERE all(r IN relationships(p) WHERE r.amount <= 100) RETURN count(p) AS paths',
         why: '"Every leg is small" — the filter that separates a fraud loop from ordinary payments.',
         critical: true,
-        check: expectAtLeast('cycles', 1),
+        check: expectAtLeast('paths', 1),
       },
       {
         name: 'pattern predicate in WHERE',
