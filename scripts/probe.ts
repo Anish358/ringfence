@@ -633,7 +633,11 @@ function writeArtifacts(results: Result[]) {
   const mdPath = resolve(process.cwd(), 'docs/cognodb-probe.md')
   mkdirSync(dirname(jsonPath), { recursive: true })
 
-  writeFileSync(jsonPath, JSON.stringify({ uri: URI!.split('@').pop(), results }, null, 2))
+  // NEVER write the instance host. These artefacts are committed, and the
+  // brief treats the connection URI as a secret alongside the password. Only
+  // the scheme is useful in the results file anyway.
+  const endpoint = `${URI!.split('://')[0]}:// (redacted)`
+  writeFileSync(jsonPath, JSON.stringify({ endpoint, results }, null, 2))
 
   const rows = results
     .map(
