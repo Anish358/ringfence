@@ -38,6 +38,17 @@ export type Ring = {
   cycles: TransferCycle[]
   signals: RingSignal[]
   breakdown: Record<string, number>
+  /**
+   * How many pairs of members share NO identifier with each other, and so are
+   * only in the same ring because a chain of intermediaries connects them.
+   *
+   * This number is the entire "why a graph database" argument, computed rather
+   * than asserted. A relational GROUP BY finds pairs that share something; it
+   * can never put these two accounts in the same group, at any depth, without
+   * a recursive query that knows the depth in advance.
+   */
+  indirectPairs: number
+  totalPairs: number
 }
 
 /* -- union-find -------------------------------------------------------------
@@ -135,6 +146,29 @@ function scoreRing(
   const cycles = allCycles.filter((c) => c.accounts.every((id) => memberSet.has(id)))
   const linkTypes = [...new Set(sharedBy.map((s) => s.kind))]
 
+  // Which member pairs share an identifier DIRECTLY? Every other pair in the
+  // ring is reachable only by walking through other members.
+  const directPairs = new Set<string>()
+  for (const g of allGroups) {
+    const inRing = g.accountIds.filter((id) => memberSet.has(id))
+    for (let i = 0; i < inRing.length; i++) {
+      for (let j = i + 1; j < inRing.length; j++) {
+        directPairs.add([inRing[i], inRing[j]].sort().join('|'))
+      }
+    }
+  }
+  // Transfers also count as a direct link for this purpose -- ring 4's members
+  // share no identifier but do move money to each other.
+  for (const c of cycles) {
+    for (let i = 0; i < c.accounts.length; i++) {
+      for (let j = i + 1; j < c.accounts.length; j++) {
+        directPairs.add([c.accounts[i], c.accounts[j]].sort().join('|'))
+      }
+    }
+  }
+  const totalPairs = (memberIds.length * (memberIds.length - 1)) / 2
+  const indirectPairs = Math.max(0, totalPairs - directPairs.size)
+
   // How much shared infrastructure, weighted by how incriminating each kind is.
   // A device shared by 6 accounts contributes 0.9 x 5; an address shared by 2
   // contributes 0.45 x 1.
@@ -169,6 +203,15 @@ function scoreRing(
   const risk = Math.max(0, Math.min(100, Math.round(Object.values(breakdown).reduce((a, b) => a + b, 0))))
 
   const signals: RingSignal[] = []
+  // Listed first, because for a reviewer this is the single most interesting
+  // fact the system can state about a ring.
+  if (indirectPairs > 0) {
+    signals.push({
+      code: 'INDIRECT',
+      label: `${indirectPairs} pair${indirectPairs > 1 ? 's' : ''} share nothing directly`,
+      detail: `Of ${totalPairs} pairs of accounts in this ring, ${indirectPairs} have no identifier in common at all. They are in the same ring only because a chain of other accounts connects them — which is what a GROUP BY can never find.`,
+    })
+  }
   if (cycles.length > 0) {
     signals.push({ code: 'CYCLES', label: 'Circular transfers', detail: `${cycles.length} money loop${cycles.length > 1 ? 's' : ''} between members` })
   }
@@ -204,5 +247,7 @@ function scoreRing(
     cycles,
     signals,
     breakdown,
+    indirectPairs,
+    totalPairs,
   }
 }

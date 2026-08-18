@@ -12,6 +12,7 @@ import { getRings } from '@/lib/detect-cached'
 import { graphStats } from '@/queries/health'
 import { MIN_RING_SIZE, MAX_IDENTIFIER_DEGREE } from '@/queries/constants'
 import { RingCard } from '@/components/rings/RingCard'
+import { GuidedTour, type TourStop } from '@/components/shell/GuidedTour'
 import { EmptyState, ErrorState, NoDataState } from '@/components/states'
 import { rupees } from '@/lib/format'
 import { toAppError } from '@/lib/errors'
@@ -73,6 +74,7 @@ export default async function RingRadarPage() {
   return (
     <>
       <PageHead />
+      <GuidedTour stops={buildTour(rings)} />
 
       <dl className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Rings detected" value={String(rings.length)} note={`clusters of ${MIN_RING_SIZE}+ accounts`} />
@@ -111,6 +113,70 @@ export default async function RingRadarPage() {
       )}
     </>
   )
+}
+
+/**
+ * Pick the four most instructive things in the current dataset.
+ *
+ * Computed, not hardcoded: regenerating the data changes the ring ids, and a
+ * tour pointing at ids that no longer exist would be worse than no tour.
+ */
+function buildTour(rings: Awaited<ReturnType<typeof getRings>>): TourStop[] {
+  const worst = rings[0]
+
+  // The clearest "only a graph finds this" case: the highest proportion of
+  // member pairs that share nothing directly, among rings mixing 3+ kinds.
+  const chain =
+    [...rings]
+      .filter((r) => r.linkTypes.length >= 3 && r.indirectPairs > 0)
+      .sort((a, b) => b.indirectPairs / b.totalPairs - a.indirectPairs / a.totalPairs)[0] ??
+    [...rings].sort((a, b) => b.indirectPairs - a.indirectPairs)[0]
+
+  // The innocent case. Showing it is what proves the scoring has judgment
+  // rather than flagging everything that happens to be connected.
+  const benign = [...rings].reverse().find((r) => r.signals.some((s) => s.code === 'HOUSEHOLD')) ?? rings[rings.length - 1]
+
+  const stops: TourStop[] = []
+
+  if (worst) {
+    stops.push({
+      n: 1,
+      href: `/rings/${worst.id}`,
+      title: 'See the worst cluster',
+      body: `${worst.memberIds.length} accounts the system ranks highest. Watch them clump together in the diagram — that shape is the fraud.`,
+      proof: `${worst.displayId} · risk ${worst.risk}`,
+    })
+  }
+
+  if (chain && chain.id !== worst?.id) {
+    stops.push({
+      n: 2,
+      href: `/rings/${chain.id}`,
+      title: 'The one SQL cannot find',
+      body: `${chain.indirectPairs} of its ${chain.totalPairs} account pairs share nothing at all with each other. They are one ring only because a chain of others links them.`,
+      proof: `${chain.displayId} · ${chain.linkTypes.length} kinds of link`,
+    })
+  }
+
+  stops.push({
+    n: stops.length + 1,
+    href: '/check',
+    title: 'Stop one before payout',
+    body: 'Run a new application against the graph. Two examples are pre-filled — one connected to fraud, one an innocent family. Compare the verdicts.',
+    proof: 'no data entry needed',
+  })
+
+  if (benign) {
+    stops.push({
+      n: stops.length + 1,
+      href: `/rings/${benign.id}`,
+      title: 'Check it has judgment',
+      body: `A real overlap with an innocent explanation: relatives at one address. The system scores it ${benign.risk} out of 100 and says so, instead of flagging everyone connected.`,
+      proof: `${benign.displayId} · risk ${benign.risk}`,
+    })
+  }
+
+  return stops
 }
 
 function PageHead() {

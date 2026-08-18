@@ -102,6 +102,8 @@ export default async function RingPage({ params }: { params: Promise<{ id: strin
         </div>
       </header>
 
+      <WhatToNotice ring={ring} />
+
       <Investigation graph={graph} details={details} expandableFrom={ring.memberIds} />
 
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
@@ -109,6 +111,60 @@ export default async function RingPage({ params }: { params: Promise<{ id: strin
         {ring.cycles.length > 0 && <CycleTable cycles={ring.cycles} />}
       </section>
     </>
+  )
+}
+
+/**
+ * A plain-language sentence naming the single most interesting thing about THIS
+ * ring, assembled from what was actually computed.
+ *
+ * Without it, a reader who is not a fraud analyst sees a network diagram and
+ * has no idea whether they are looking at something clever or something
+ * obvious. Naming it removes the need to already know.
+ */
+function WhatToNotice({ ring }: { ring: Awaited<ReturnType<typeof getRing>> & {} }) {
+  const points: string[] = []
+
+  if (ring.indirectPairs > 0) {
+    points.push(
+      `${ring.indirectPairs} of the ${ring.totalPairs} pairs of accounts here share nothing at all with each other — no device, no address, no bank account, no IP. They are in one ring only because a chain of the others connects them. This is the case a conventional "find accounts sharing a device" query can never return, at any depth.`,
+    )
+  }
+  if (ring.cycles.length > 0) {
+    points.push(
+      `Money moves in ${ring.cycles.length} closed loop${ring.cycles.length > 1 ? 's' : ''} between these accounts — it leaves one and comes back to it. Small circular transfers make dormant accounts look active and creditworthy before a bust-out. There is no clean way to express this query in SQL at all.`,
+    )
+  }
+  if (ring.signals.some((s) => s.code === 'BURST')) {
+    points.push(
+      'Three or more of these accounts drew almost their entire credit limit within the same 72-hour window, after sitting quiet. That is the bust-out signature.',
+    )
+  }
+  if (ring.signals.some((s) => s.code === 'HOUSEHOLD')) {
+    points.push(
+      'These accounts share one address and nothing else, and no money moves between them. That is what a family looks like, which is why the score is low — the system is meant to tell this apart from a ring, not flag everyone who is connected.',
+    )
+  }
+  if (ring.confirmedCount > 0) {
+    points.push(
+      `${ring.confirmedCount} of these accounts ${ring.confirmedCount === 1 ? 'is' : 'are'} already confirmed fraud. Everything connected to them is now measurable by distance from a known-bad account.`,
+    )
+  }
+
+  if (points.length === 0) return null
+
+  return (
+    <section className="mb-4 rounded-lg border border-accent/30 bg-accent-soft px-4 py-3">
+      <h2 className="text-[13px] font-semibold text-ink">What to notice here</h2>
+      <ul className="mt-2 space-y-2">
+        {points.map((p) => (
+          <li key={p} className="flex gap-2 text-[12.5px] leading-relaxed text-ink-2">
+            <span aria-hidden="true" className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-accent" />
+            <span>{p}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

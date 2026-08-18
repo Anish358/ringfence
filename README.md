@@ -17,6 +17,28 @@ confirm them, and checks new applicants against the whole graph before money mov
 
 ---
 
+## Start here
+
+The app is built for a fraud analyst, but a reviewer is not one — so it opens with a
+**four-step guided tour** whose targets are computed from the live data, and a
+[**How it works**](https://ringfence-kappa.vercel.app/how-it-works) page that makes the whole
+argument in sixty seconds with no graph-database background assumed.
+
+Three minutes, in this order:
+
+1. **The worst cluster** — 10 accounts that were quiet for six weeks, then all drew their full
+   limit inside 72 hours. Watch them clump together in the diagram; that shape *is* the fraud.
+2. **The one SQL cannot find** — a ring where **6 of its 10 account pairs share nothing at all**
+   with each other. They are one ring only because a chain of intermediaries links them.
+3. **Applicant Check** — two pre-filled examples, no data entry. One scores **REJECT 90** with a
+   4-hop evidence chain to a confirmed fraud account; the other scores **APPROVE 8**.
+4. **A benign cluster** — relatives sharing one address, scored **5** and labelled a probable
+   household. This is what proves the scoring has judgment rather than flagging everyone
+   connected.
+
+Every ring page also carries a **"What to notice here"** panel naming, in plain language, the
+most interesting computed fact about that specific ring.
+
 ## The problem
 
 A digital lending app approves small loans in about ninety seconds, mostly automatically.
@@ -81,6 +103,20 @@ Each adjacent pair shares exactly one identifier, so a *shared device* rule catc
 all three hops in a single traversal and returns the whole ring. The relational equivalent needs
 a different set of self-joins for every possible ordering of identifier types, and you must know
 the depth before you write the query.
+
+**The app measures this rather than asserting it.** For every detected ring it computes how many
+member pairs share *no* identifier with each other, and shows the number on the ring card:
+
+| Ring | Account pairs | Pairs sharing nothing directly |
+|---|---|---|
+| `RING-02040` bust-out | 45 | **30** |
+| `RING-02013` mule payout | 36 | **18** |
+| `RING-02022` chain | 10 | **6** |
+| `RING-00125` household | 6 | **0** |
+
+That last row is the point: a family all shares the one address, so every pair is directly
+connected and the number is zero. Real rings are held together by chains; coincidences are not.
+It turns out to be a sharp discriminator, and it falls straight out of the data model.
 
 This is not hypothetical here. Ring 3 in the seed data is exactly this shape, and the live
 system returns:
@@ -536,7 +572,7 @@ src/
 
 | Screen or action | Mechanism | Why |
 |---|---|---|
-| Ring Radar, ring page | **Server Component** | Data is needed to render; no API layer, and `loading.tsx` gives the skeleton free |
+| Ring Radar, ring page, How it works | **Server Component** | Data is needed to render; no API layer, and `loading.tsx` gives the skeleton free |
 | Canvas "expand neighbours" | **Route Handler** + `useAsync` | Triggered by a click inside a client component |
 | Applicant Check, Path Finder | **Route Handler** | User-submitted input needing visible loading and error UI |
 | Confirm fraud / Clear | **Server Action** + `revalidateTag` | A mutation; the tag invalidation refreshes Ring Radar for free |

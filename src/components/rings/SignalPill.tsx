@@ -6,6 +6,7 @@ import type { RingSignal } from '@/lib/cluster'
  * analyst who cannot see the reasoning will override it or ignore it.
  */
 const TONE: Record<string, string> = {
+  INDIRECT: 'bg-accent-soft text-accent border-accent/40 font-semibold',
   CYCLES: 'bg-critical-soft text-critical border-critical/25',
   BURST: 'bg-critical-soft text-critical border-critical/25',
   KNOWN: 'bg-elevated-soft text-elevated border-elevated/25',

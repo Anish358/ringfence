@@ -3,6 +3,7 @@ import { NavLink } from './NavLink'
 
 const LINKS = [
   { href: '/', label: 'Ring Radar', hint: 'Detected clusters' },
+  { href: '/how-it-works', label: 'How it works', hint: 'Why this needs a graph database' },
   { href: '/check', label: 'Applicant Check', hint: 'Before disbursement' },
   { href: '/paths', label: 'Path Finder', hint: 'Connection between two accounts' },
 ]
